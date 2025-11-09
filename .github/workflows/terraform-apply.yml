@@ -1,0 +1,79 @@
+
+name: terraform-apply
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-apply.yml'
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "GCP Project ID"
+        required: false
+        default: "nulleffect-qa"
+      region:
+        description: "GCP Region"
+        required: false
+        default: "us-central1"
+      repo_id:
+        description: "Artifact Registry repo id"
+        required: false
+        default: "nulleffect-docker"
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: terraform
+
+    permissions:
+      contents: read
+      id-token: write  # (unused if using JSON key; needed if you switch to WIF)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # ---------- AUTH OPTION A: JSON key (simple) ----------
+      - name: Write SA credentials
+        run: |
+          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > $HOME/gcp-key.json
+          chmod 600 $HOME/gcp-key.json
+      - name: Install gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ github.event.inputs.project_id || secrets.PROJECT_ID || 'nulleffect-qa' }}
+          service_account_key: ${{ secrets.GOOGLE_CREDENTIALS }}
+          export_default_credentials: true
+
+      # If you prefer Workload Identity Federation instead,
+      # replace the two steps above with google-github-actions/auth@v2.
+
+      - name: Terraform init
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/gcp-key.json
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/gcp-key.json
+          PROJECT_ID: ${{ github.event.inputs.project_id || secrets.PROJECT_ID || 'nulleffect-qa' }}
+          REGION:     ${{ github.event.inputs.region     || secrets.REGION     || 'us-central1' }}
+          REPO_ID:    ${{ github.event.inputs.repo_id    || secrets.REPO_ID    || 'nulleffect-docker' }}
+        run: |
+          terraform apply -auto-approve \
+            -var="project_id=${PROJECT_ID}" \
+            -var="region=${REGION}" \
+            -var="repo_id=${REPO_ID}"
+
+      - name: Show outputs
+        run: terraform output || true
+
