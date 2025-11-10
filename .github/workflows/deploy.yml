@@ -1,0 +1,142 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "GCP Project ID"
+        required: false
+        default: "nulleffect-qa"
+      region:
+        description: "GCP Region"
+        required: false
+        default: "us-central1"
+
+env:
+  PROJECT_ID: nulleffect-qa
+  REGION: us-central1
+  REPO_ID: nulleffect-docker
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Authenticate to Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      # Configure Docker to use gcloud as credential helper
+      - name: Configure Docker
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # Build and push backend
+      - name: Build Backend Image
+        run: |
+          docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/backend:${{ github.sha }} \
+                       -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/backend:latest \
+                       ./backend
+
+      - name: Push Backend Image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/backend:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/backend:latest
+
+      # Deploy backend to Cloud Run
+      - name: Deploy Backend
+        run: |
+          gcloud run deploy nulleffect-backend \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/backend:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances=0 \
+            --max-instances=3
+
+      # Get backend URL
+      - name: Get Backend URL
+        id: backend-url
+        run: |
+          BACKEND_URL=$(gcloud run services describe nulleffect-backend \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "Backend URL: $BACKEND_URL"
+
+      # Build and push frontend with backend URL
+      - name: Build Frontend Image
+        run: |
+          docker build \
+            --build-arg VITE_API_BASE=${{ steps.backend-url.outputs.url }} \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/frontend:${{ github.sha }} \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/frontend:latest \
+            ./frontend
+
+      - name: Push Frontend Image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/frontend:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/frontend:latest
+
+      # Deploy frontend to Cloud Run
+      - name: Deploy Frontend
+        run: |
+          gcloud run deploy nulleffect-frontend \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_ID }}/frontend:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances=0 \
+            --max-instances=3
+
+      # Get frontend URL
+      - name: Get Frontend URL
+        id: frontend-url
+        run: |
+          FRONTEND_URL=$(gcloud run services describe nulleffect-frontend \
+            --region=${{ env.REGION }} \
+            --format='value(status.url)')
+          echo "url=$FRONTEND_URL" >> $GITHUB_OUTPUT
+          echo "Frontend URL: $FRONTEND_URL"
+
+      # Test deployment
+      - name: Test Backend
+        run: |
+          curl -f ${{ steps.backend-url.outputs.url }}/ping || exit 1
+
+      - name: Test Frontend
+        run: |
+          curl -f ${{ steps.frontend-url.outputs.url }} || exit 1
+
+      # Summary
+      - name: Deployment Summary
+        run: |
+          echo "✅ Deployment Complete!"
+          echo ""
+          echo "Backend:  ${{ steps.backend-url.outputs.url }}"
+          echo "Frontend: ${{ steps.frontend-url.outputs.url }}"
+          echo ""
+          echo "Commit: ${{ github.sha }}"
