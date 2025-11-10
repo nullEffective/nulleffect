@@ -1,6 +1,10 @@
-
 FROM node:20-slim AS build
 WORKDIR /app
+
+# Accept build arg for API base URL
+ARG VITE_API_BASE
+ENV VITE_API_BASE=$VITE_API_BASE
+
 COPY package.json /app/
 RUN npm install
 COPY . /app
