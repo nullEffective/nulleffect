@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 
 /**
  * NullEffect Alien‑style Splash + Conway Life panel
+ * - Typewriter title effect
  * - Self-contained React component (no external UI libs required)
  * - Fixes React #130 (objects as children) by ensuring only strings/numbers/elements are rendered
  * - Adds speed controls (▲/▼/reset) and visible cursor trails
@@ -10,6 +11,96 @@ import { motion, useMotionValue, useSpring } from "framer-motion";
  * - Includes lightweight console tests for Life rules
  * - ENHANCED: Backend ping integration with status display
  */
+
+// Typewriter component for the title
+function TypewriterTitle(): JSX.Element {
+  const [displayText, setDisplayText] = useState<string>("");
+  const [showCursor, setShowCursor] = useState<boolean>(true);
+  const [isTypingComplete, setIsTypingComplete] = useState<boolean>(false);
+  const fullText = "[ NULLEFFECT ]";
+  const typingSpeed = 100; // ms per character
+
+  useEffect(() => {
+    let audioContext: AudioContext | null = null;
+    
+    // Initialize audio context (may be suspended until user interaction)
+    try {
+      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Resume audio context if suspended (required by some browsers)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    } catch (e) {
+      console.warn('Audio context not available:', e);
+    }
+    
+    let currentIndex = 0;
+    
+    const typeInterval = setInterval(() => {
+      if (currentIndex <= fullText.length) {
+        setDisplayText(fullText.slice(0, currentIndex));
+        
+        // Play typewriter click sound for each character
+        if (currentIndex < fullText.length && audioContext && audioContext.state === 'running') {
+          try {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // Typewriter click characteristics
+            oscillator.frequency.value = 800 + Math.random() * 200;
+            oscillator.type = 'square';
+            
+            gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.05);
+          } catch (e) {
+            // Silently fail if audio doesn't work
+          }
+        }
+        
+        currentIndex++;
+      } else {
+        clearInterval(typeInterval);
+        setIsTypingComplete(true);
+      }
+    }, typingSpeed);
+
+    return () => {
+      clearInterval(typeInterval);
+      if (audioContext) {
+        audioContext.close();
+      }
+    };
+  }, []);
+
+  // Blink cursor
+  useEffect(() => {
+    const blinkInterval = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 530); // Blink every 530ms
+
+    return () => clearInterval(blinkInterval);
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center">
+      <h1 className="font-mono uppercase tracking-[0.4em] text-4xl text-emerald-300/90 md:text-7xl">
+        {displayText}
+      </h1>
+      {isTypingComplete && (
+        <div className="mt-4 font-mono text-3xl text-emerald-300/90 md:text-5xl">
+          <span className={`inline-block transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`}>▌</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function NullEffectSplash(): JSX.Element {
   const [ts, setTs] = useState<string>(new Date().toISOString());
@@ -83,12 +174,10 @@ export default function NullEffectSplash(): JSX.Element {
       </div>
 
       {/* Header */}
-      <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-6 pt-16 md:pt-24">
+      <div className="relative z-10 mx-auto flex flex-col items-center px-6 pt-16 md:pt-24" style={{ width: '95%' }}>
         <div className="w-full rounded-sm border border-emerald-600/40 bg-black/50 p-6 text-center shadow-[0_0_24px_rgba(16,185,129,0.12)]">
           <div className="mb-4 font-mono text-sm tracking-[0.35em] text-emerald-300/80 md:text-base">[ SYS/IDENT ]</div>
-          <h1 className="inline-block font-mono uppercase tracking-[0.4em] text-4xl text-emerald-300/90 md:text-7xl">
-            [ nullEffect ]<span className="ml-1 inline-block animate-blink">▌</span>
-          </h1>
+          <TypewriterTitle />
           <p className="mt-4 font-mono text-xs leading-relaxed text-emerald-300/80">
             WEYLAND-ESQUE TERMINAL INTERFACE — MONOCHROME MODE ENABLED — SAFE OPERATIONS
           </p>
@@ -98,7 +187,7 @@ export default function NullEffectSplash(): JSX.Element {
         </div>
 
         {/* Main: Conway Life */}
-        <section id="main" className="relative z-10 mx-auto mt-8 w-full max-w-6xl px-6">
+        <section id="main" className="relative z-10 mx-auto mt-8 w-full px-6" style={{ width: '95%' }}>
           <div className="rounded-sm border border-emerald-600/40 bg-black/60 p-4 shadow-[0_0_24px_rgba(16,185,129,0.08)]">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <div className="font-mono text-[11px] tracking-[0.25em] text-emerald-300/80">[ MAIN // LIFE_SIM ]</div>
@@ -108,12 +197,6 @@ export default function NullEffectSplash(): JSX.Element {
           </div>
         </section>
       </div>
-
-      {/* Styles */}
-      <style>{`
-        @keyframes blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: 0 } }
-        .animate-blink { animation: blink 1s step-end infinite; }
-      `}</style>
     </div>
   );
 }
@@ -124,7 +207,7 @@ export default function NullEffectSplash(): JSX.Element {
 function LifeSim(): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [running, setRunning] = useState<boolean>(true);
-  const [uiTick, setUiTick] = useState<number>(0); // to refresh text UI
+  const [, setUiTick] = useState<number>(0); // state used only to force re-render; value intentionally unused
 
   // Grid
   const COLS = 120;

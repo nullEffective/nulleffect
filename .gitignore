@@ -212,3 +212,5 @@ __marimo__/
 *.p12
 
 /terraform/.terraform/
+.DS_Store
+*.tsx-1

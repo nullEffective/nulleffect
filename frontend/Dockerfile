@@ -1,9 +1,11 @@
 FROM node:20-slim AS build
 WORKDIR /app
 
-# Accept build arg for API base URL
+# Accept build args
 ARG VITE_API_BASE
+ARG BUILD_TIME
 ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_BUILD_TIME=$BUILD_TIME
 
 COPY package.json /app/
 RUN npm install
