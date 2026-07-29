@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import NullEffectSplash from './NullEffectSplash';
 import TheVoid from './TheVoid';
 import TheFist from './TheFist';
+import Eden from './Eden';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -10,5 +11,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <NullEffectSplash />
     <TheVoid />
     <TheFist />
+    <Eden />
   </React.StrictMode>
 );

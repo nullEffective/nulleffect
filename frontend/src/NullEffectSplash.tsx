@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
+import { apiBase } from "./apiBase";
 
 /**
  * NullEffect Alien‑style Splash + Conway Life panel
@@ -108,8 +109,8 @@ export default function NullEffectSplash(): JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   
   // Backend ping
-  const apiBase = (typeof (window as any).__API_BASE__ === "string" && (window as any).__API_BASE__) || "";
-  
+  const base = apiBase();
+
   useEffect(() => {
     const t = setInterval(() => setTs(new Date().toISOString()), 1000);
     return () => clearInterval(t);
@@ -118,7 +119,6 @@ export default function NullEffectSplash(): JSX.Element {
   useEffect(() => {
     const fetchPing = async () => {
       try {
-        const base = apiBase || "http://localhost:8080";
         const res = await fetch(`${base}/ping`);
         const data = await res.json();
         setPong(data.response);
@@ -132,7 +132,7 @@ export default function NullEffectSplash(): JSX.Element {
     fetchPing();
     const interval = setInterval(fetchPing, 10000); // refresh every 10s
     return () => clearInterval(interval);
-  }, [apiBase]);
+  }, [base]);
 
   // Parallax glow
   const mx = useMotionValue(0);
@@ -174,7 +174,7 @@ export default function NullEffectSplash(): JSX.Element {
       </div>
 
       {/* Header */}
-      <div className="relative z-10 mx-auto flex flex-col items-center px-6 pt-16 md:pt-24" style={{ width: '95%' }}>
+      <div className="relative z-10 mx-auto flex flex-col items-center px-6 pt-6 md:pt-8" style={{ width: '95%' }}>
         <div className="w-full rounded-sm border border-emerald-600/40 bg-black/50 p-6 text-center shadow-[0_0_24px_rgba(16,185,129,0.12)]">
           <div className="mb-4 font-mono text-sm tracking-[0.35em] text-emerald-300/80 md:text-base">[ SYS/IDENT ]</div>
           <TypewriterTitle />
@@ -182,7 +182,7 @@ export default function NullEffectSplash(): JSX.Element {
             WEYLAND-ESQUE TERMINAL INTERFACE — MONOCHROME MODE ENABLED — SAFE OPERATIONS
           </p>
           <p className="mt-1 font-mono text-[10px] text-emerald-300/60">
-            ts={ts} · route=/ · mode=prod · backend={apiBase || "localhost:8080"}
+            ts={ts} · route=/ · mode=prod · backend={base}
           </p>
         </div>
 

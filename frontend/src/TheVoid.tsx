@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { apiBase } from "./apiBase";
 
 /**
  * The Void — NullEffect's namesake full-stack feature.
@@ -28,11 +29,6 @@ type Stats = {
   characters_consumed: number;
   since: string;
 };
-
-function apiBase(): string {
-  const fromWindow = (window as any).__API_BASE__;
-  return typeof fromWindow === "string" && fromWindow ? fromWindow : "";
-}
 
 export default function TheVoid(): JSX.Element {
   const [message, setMessage] = useState<string>("");
