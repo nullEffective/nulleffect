@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { apiBase } from "./apiBase";
+import TopBar from "./TopBar";
 
 /**
  * NullEffect Alien‑style Splash + Conway Life panel
@@ -93,12 +94,8 @@ function TypewriterTitle(): JSX.Element {
     <div className="flex flex-col items-center">
       <h1 className="font-mono uppercase tracking-[0.4em] text-4xl text-emerald-300/90 md:text-7xl">
         {displayText}
+        <span className={`inline-block transition-opacity duration-100 ${!isTypingComplete || showCursor ? 'opacity-100' : 'opacity-0'}`}>▌</span>
       </h1>
-      {isTypingComplete && (
-        <div className="mt-4 font-mono text-3xl text-emerald-300/90 md:text-5xl">
-          <span className={`inline-block transition-opacity duration-100 ${showCursor ? 'opacity-100' : 'opacity-0'}`}>▌</span>
-        </div>
-      )}
     </div>
   );
 }
@@ -157,21 +154,17 @@ export default function NullEffectSplash(): JSX.Element {
       <motion.div aria-hidden className="pointer-events-none absolute -inset-40 rounded-full" style={{ x: sx, y: sy, background: "radial-gradient(420px 420px at 50% 50%, rgba(16,185,129,0.10), transparent 60%)", filter: "blur(10px)" }} />
 
       {/* Top bar */}
-      <div className="relative z-10 flex items-center justify-between border-b border-emerald-500/30 bg-black/60 px-6 py-3 md:px-10">
-        <div className="flex items-center gap-3">
-          <div className="h-3 w-3 rounded-[2px] bg-emerald-400 shadow-[0_0_20px_2px_rgba(16,185,129,0.9)]" />
-          <span className="font-mono text-[11px] tracking-[0.25em] text-emerald-300/90">NE//CORE</span>
-        </div>
-        <nav className="flex items-center gap-6">
+      <TopBar
+        rightSlot={
           <div className="flex items-center gap-2 font-mono text-[10px] text-emerald-300/70">
-            <div 
+            <div
               className={`h-2 w-2 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : (pong && !pong.startsWith('Error') ? 'bg-green-400' : 'bg-red-400')}`}
               style={{ boxShadow: isLoading ? '0 0 10px rgba(251, 191, 36, 0.8)' : (pong && !pong.startsWith('Error') ? '0 0 10px rgba(74, 222, 128, 0.8)' : '0 0 10px rgba(248, 113, 113, 0.8)') }}
             />
             <span>BACKEND: {isLoading ? 'CONNECTING' : (pong && !pong.startsWith('Error') ? 'ONLINE' : 'OFFLINE')}</span>
           </div>
-        </nav>
-      </div>
+        }
+      />
 
       {/* Header */}
       <div className="relative z-10 mx-auto flex flex-col items-center px-6 pt-6 md:pt-8" style={{ width: '95%' }}>
