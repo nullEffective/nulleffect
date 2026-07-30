@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import TopBar from "./TopBar";
+import Banner from "./Banner";
 import Sidebar from "./Sidebar";
 
 /**
@@ -32,8 +33,9 @@ export default function Shell({ children }: { children: ReactNode }): JSX.Elemen
       </div>
 
       <TopBar />
+      <Banner />
 
-      <div className="relative flex min-h-[calc(100vh-42px)]">
+      <div className="relative flex">
         <Sidebar />
         <main className="relative z-10 min-w-0 flex-1">{children}</main>
       </div>

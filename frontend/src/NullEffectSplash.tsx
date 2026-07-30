@@ -1,113 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
-import { apiBase } from "./apiBase";
 
 /**
- * NullEffect Alien‑style Splash + Conway Life panel
- * - Typewriter title effect
+ * NullEffect Conway Life panel (homepage main content)
  * - Self-contained React component (no external UI libs required)
  * - Fixes React #130 (objects as children) by ensuring only strings/numbers/elements are rendered
  * - Adds speed controls (▲/▼/reset) and visible cursor trails
  * - Default speed: complete one full Conway step in ~3 seconds
  * - Includes lightweight console tests for Life rules
- * - ENHANCED: Backend ping integration with status display
+ * - Title/identity banner and backend status live in Banner.tsx / BackendStatus.tsx
  */
 
-// Typewriter component for the title
-function TypewriterTitle(): JSX.Element {
-  const [displayText, setDisplayText] = useState<string>("");
-  const [showCursor, setShowCursor] = useState<boolean>(true);
-  const [isTypingComplete, setIsTypingComplete] = useState<boolean>(false);
-  const fullText = "[ NULLEFFECT ]";
-  const typingSpeed = 100; // ms per character
-
-  useEffect(() => {
-    let audioContext: AudioContext | null = null;
-    
-    // Initialize audio context (may be suspended until user interaction)
-    try {
-      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Resume audio context if suspended (required by some browsers)
-      if (audioContext.state === 'suspended') {
-        audioContext.resume();
-      }
-    } catch (e) {
-      console.warn('Audio context not available:', e);
-    }
-    
-    let currentIndex = 0;
-    
-    const typeInterval = setInterval(() => {
-      if (currentIndex <= fullText.length) {
-        setDisplayText(fullText.slice(0, currentIndex));
-        
-        // Play typewriter click sound for each character
-        if (currentIndex < fullText.length && audioContext && audioContext.state === 'running') {
-          try {
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            // Typewriter click characteristics
-            oscillator.frequency.value = 800 + Math.random() * 200;
-            oscillator.type = 'square';
-            
-            gainNode.gain.setValueAtTime(0.05, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.05);
-          } catch (e) {
-            // Silently fail if audio doesn't work
-          }
-        }
-        
-        currentIndex++;
-      } else {
-        clearInterval(typeInterval);
-        setIsTypingComplete(true);
-      }
-    }, typingSpeed);
-
-    return () => {
-      clearInterval(typeInterval);
-      if (audioContext) {
-        audioContext.close();
-      }
-    };
-  }, []);
-
-  // Blink cursor
-  useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      setShowCursor((prev) => !prev);
-    }, 530); // Blink every 530ms
-
-    return () => clearInterval(blinkInterval);
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center">
-      <h1 className="whitespace-nowrap font-mono uppercase tracking-[0.4em] text-emerald-300/90" style={{ fontSize: "clamp(1.4rem, 4vw, 4.5rem)" }}>
-        {displayText}
-        <span className={`inline-block transition-opacity duration-100 ${!isTypingComplete || showCursor ? 'opacity-100' : 'opacity-0'}`}>▌</span>
-      </h1>
-    </div>
-  );
-}
-
 export default function NullEffectSplash(): JSX.Element {
-  const [ts, setTs] = useState<string>(new Date().toISOString());
-  const base = apiBase();
-
-  useEffect(() => {
-    const t = setInterval(() => setTs(new Date().toISOString()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
   // Parallax glow
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -124,30 +28,16 @@ export default function NullEffectSplash(): JSX.Element {
       {/* Parallax phosphor glow */}
       <motion.div aria-hidden className="pointer-events-none absolute -inset-40 rounded-full" style={{ x: sx, y: sy, background: "radial-gradient(420px 420px at 50% 50%, rgba(16,185,129,0.10), transparent 60%)", filter: "blur(10px)" }} />
 
-      {/* Header */}
-      <div className="relative z-10 mx-auto flex flex-col items-center px-6 pt-6 md:pt-8" style={{ width: '95%' }}>
-        <div className="w-full rounded-sm border border-emerald-600/40 bg-black/50 p-6 text-center shadow-[0_0_24px_rgba(16,185,129,0.12)]">
-          <div className="mb-4 font-mono text-sm tracking-[0.35em] text-emerald-300/80 md:text-base">[ SYS/IDENT ]</div>
-          <TypewriterTitle />
-          <p className="mt-4 font-mono text-xs leading-relaxed text-emerald-300/80">
-            WEYLAND-ESQUE TERMINAL INTERFACE — MONOCHROME MODE ENABLED — SAFE OPERATIONS
-          </p>
-          <p className="mt-1 font-mono text-[10px] text-emerald-300/60">
-            ts={ts} · route=/ · mode=prod · backend={base}
-          </p>
-        </div>
-
-        {/* Main: Conway Life */}
-        <section id="main" className="relative z-10 mx-auto mt-8 w-full px-6" style={{ width: '95%' }}>
-          <div className="rounded-sm border border-emerald-600/40 bg-black/60 p-4 shadow-[0_0_24px_rgba(16,185,129,0.08)]">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <div className="font-mono text-[11px] tracking-[0.25em] text-emerald-300/80">[ MAIN // LIFE_SIM ]</div>
-              <div className="font-mono text-[10px] text-emerald-300/60">Conway's Game of Life · click or [Space] to pause/resume · [R] reseed · [▲/▼] speed · [1][2][3] presets</div>
-            </div>
-            <LifeSim />
+      {/* Main: Conway Life */}
+      <section id="main" className="relative z-10 mx-auto mt-6 w-full px-6" style={{ width: '95%' }}>
+        <div className="rounded-sm border border-emerald-600/40 bg-black/60 p-4 shadow-[0_0_24px_rgba(16,185,129,0.08)]">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="font-mono text-[11px] tracking-[0.25em] text-emerald-300/80">[ MAIN // LIFE_SIM ]</div>
+            <div className="font-mono text-[10px] text-emerald-300/60">Conway's Game of Life · click or [Space] to pause/resume · [R] reseed · [▲/▼] speed · [1][2][3] presets</div>
           </div>
-        </section>
-      </div>
+          <LifeSim />
+        </div>
+      </section>
     </div>
   );
 }
