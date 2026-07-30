@@ -1,28 +1,28 @@
-import { ReactNode } from "react";
 import { edenBase } from "./apiBase";
+import BackendStatus from "./BackendStatus";
 
 /**
- * TopBar — shared NE//CORE header used by the splash and module pages.
+ * TopBar — shared NE//CORE header on every page.
  *
- * Left: NE//CORE identity (links home). Right: module nav links plus an
- * optional caller-supplied slot (e.g. the backend status lamp on the splash).
- * Full page loads on nav are intentional — no client-side router needed;
+ * Left: NE//CORE identity (links home). Right: backend status lamp, plus
+ * project links on small screens only — md+ screens get the Sidebar instead.
+ * Navigation is plain <a href> full page loads — no client-side router;
  * nginx falls back to index.html and main.tsx renders by pathname.
  */
-export default function TopBar({ rightSlot }: { rightSlot?: ReactNode }): JSX.Element {
+export default function TopBar(): JSX.Element {
   const path = window.location.pathname;
   const linkClass = (href: string) =>
-    `font-mono text-[10px] tracking-[0.25em] hover:text-emerald-200 ${
+    `whitespace-nowrap font-mono text-[10px] tracking-[0.25em] hover:text-emerald-200 md:hidden ${
       path === href ? "text-emerald-300" : "text-emerald-300/60"
     }`;
 
   return (
-    <div className="relative z-10 flex items-center justify-between border-b border-emerald-500/30 bg-black/60 px-6 py-3 md:px-10">
+    <div className="relative z-10 flex items-center justify-between gap-4 border-b border-emerald-500/30 bg-black/60 px-4 py-3 md:px-10">
       <a href="/" className="flex items-center gap-3">
         <div className="h-3 w-3 rounded-[2px] bg-emerald-400 shadow-[0_0_20px_2px_rgba(16,185,129,0.9)]" />
-        <span className="font-mono text-[11px] tracking-[0.25em] text-emerald-300/90">NE//CORE</span>
+        <span className="whitespace-nowrap font-mono text-[11px] tracking-[0.25em] text-emerald-300/90">NE//CORE</span>
       </a>
-      <nav className="flex items-center gap-6">
+      <nav className="flex items-center gap-3 md:gap-6">
         <a href="/void" className={linkClass("/void")}>VOID</a>
         <a href="/fist" className={linkClass("/fist")}>FIST</a>
         <a
@@ -33,7 +33,7 @@ export default function TopBar({ rightSlot }: { rightSlot?: ReactNode }): JSX.El
         >
           EDEN ↗
         </a>
-        {rightSlot}
+        <BackendStatus />
       </nav>
     </div>
   );

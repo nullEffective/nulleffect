@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { apiBase } from "./apiBase";
-import TopBar from "./TopBar";
 
 /**
  * NullEffect Alien‑style Splash + Conway Life panel
@@ -92,7 +91,7 @@ function TypewriterTitle(): JSX.Element {
 
   return (
     <div className="flex flex-col items-center">
-      <h1 className="font-mono uppercase tracking-[0.4em] text-4xl text-emerald-300/90 md:text-7xl">
+      <h1 className="whitespace-nowrap font-mono uppercase tracking-[0.4em] text-emerald-300/90" style={{ fontSize: "clamp(1.4rem, 4vw, 4.5rem)" }}>
         {displayText}
         <span className={`inline-block transition-opacity duration-100 ${!isTypingComplete || showCursor ? 'opacity-100' : 'opacity-0'}`}>▌</span>
       </h1>
@@ -102,34 +101,12 @@ function TypewriterTitle(): JSX.Element {
 
 export default function NullEffectSplash(): JSX.Element {
   const [ts, setTs] = useState<string>(new Date().toISOString());
-  const [pong, setPong] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  
-  // Backend ping
   const base = apiBase();
 
   useEffect(() => {
     const t = setInterval(() => setTs(new Date().toISOString()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  useEffect(() => {
-    const fetchPing = async () => {
-      try {
-        const res = await fetch(`${base}/ping`);
-        const data = await res.json();
-        setPong(data.response);
-        setIsLoading(false);
-      } catch (e) {
-        setPong(`Error: ${(e as Error).message}`);
-        setIsLoading(false);
-      }
-    };
-    
-    fetchPing();
-    const interval = setInterval(fetchPing, 10000); // refresh every 10s
-    return () => clearInterval(interval);
-  }, [base]);
 
   // Parallax glow
   const mx = useMotionValue(0);
@@ -143,28 +120,9 @@ export default function NullEffectSplash(): JSX.Element {
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-black text-emerald-200" onMouseMove={onMouseMove}>
-      {/* Scanlines + glow */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "linear-gradient(transparent 96%, rgba(255,255,255,0.25) 97%, transparent 98%)", backgroundSize: "100% 3px" }} />
-        <div className="absolute inset-0 mix-blend-screen" style={{ backgroundImage: "radial-gradient(circle at 50% 10%, rgba(16,185,129,0.10), transparent 40%)" }} />
-      </div>
-
+    <div className="relative w-full" onMouseMove={onMouseMove}>
       {/* Parallax phosphor glow */}
       <motion.div aria-hidden className="pointer-events-none absolute -inset-40 rounded-full" style={{ x: sx, y: sy, background: "radial-gradient(420px 420px at 50% 50%, rgba(16,185,129,0.10), transparent 60%)", filter: "blur(10px)" }} />
-
-      {/* Top bar */}
-      <TopBar
-        rightSlot={
-          <div className="flex items-center gap-2 font-mono text-[10px] text-emerald-300/70">
-            <div
-              className={`h-2 w-2 rounded-full ${isLoading ? 'bg-yellow-400 animate-pulse' : (pong && !pong.startsWith('Error') ? 'bg-green-400' : 'bg-red-400')}`}
-              style={{ boxShadow: isLoading ? '0 0 10px rgba(251, 191, 36, 0.8)' : (pong && !pong.startsWith('Error') ? '0 0 10px rgba(74, 222, 128, 0.8)' : '0 0 10px rgba(248, 113, 113, 0.8)') }}
-            />
-            <span>BACKEND: {isLoading ? 'CONNECTING' : (pong && !pong.startsWith('Error') ? 'ONLINE' : 'OFFLINE')}</span>
-          </div>
-        }
-      />
 
       {/* Header */}
       <div className="relative z-10 mx-auto flex flex-col items-center px-6 pt-6 md:pt-8" style={{ width: '95%' }}>

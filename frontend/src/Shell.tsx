@@ -1,14 +1,15 @@
 import { ReactNode } from "react";
 import TopBar from "./TopBar";
+import Sidebar from "./Sidebar";
 
 /**
- * PageFrame — CRT chrome for standalone module pages (/void, /fist).
+ * Shell — the shared CRT chrome around every page.
  *
- * Reproduces the splash's terminal atmosphere (black phosphor background,
- * scanlines, radial glow) around a single module, with the shared TopBar
- * for navigation back home or across modules.
+ * Layout: phosphor background + scanlines, TopBar across the top, then a
+ * flex row of the projects Sidebar (md+) and the page content. Replaces the
+ * former PageFrame and the chrome that used to live inside the splash.
  */
-export default function PageFrame({ children }: { children: ReactNode }): JSX.Element {
+export default function Shell({ children }: { children: ReactNode }): JSX.Element {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black text-emerald-200">
       {/* Scanlines + glow */}
@@ -32,7 +33,10 @@ export default function PageFrame({ children }: { children: ReactNode }): JSX.El
 
       <TopBar />
 
-      <div className="relative z-10">{children}</div>
+      <div className="relative flex min-h-[calc(100vh-42px)]">
+        <Sidebar />
+        <main className="relative z-10 min-w-0 flex-1">{children}</main>
+      </div>
     </div>
   );
 }
